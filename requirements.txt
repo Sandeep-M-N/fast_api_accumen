@@ -1,0 +1,29 @@
+fastapi[standard]
+
+# Database
+sqlalchemy>=1.4
+asyncpg
+alembic
+
+# Pydantic for validation
+pydantic[email]
+
+# Authentication / JWT
+python-jose[cryptography]
+httpx
+
+# Azure Integration
+azure-identity
+azure-keyvault-secrets
+azure-monitor-opentelemetry
+
+
+
+# CORS and Logging
+loguru
+
+# Testing
+pytest
+pytest-asyncio
+pytest-cov
+httpx[http2]         # For async test client
