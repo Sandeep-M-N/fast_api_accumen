@@ -27,3 +27,9 @@ pytest
 pytest-asyncio
 pytest-cov
 httpx[http2]         # For async test client
+
+pydantic-settings
+psycopg2-binary
+coverage
+
+azure-storage-blob
