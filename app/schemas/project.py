@@ -20,6 +20,14 @@ class ProjectBase(BaseModel):
             return date.fromisoformat(v)  # Strict ISO format parsing
         except ValueError:
             raise ValueError("Date must be in YYYY-MM-DD format")
+        
+
+class ProjectCheckRequest(BaseModel):
+    project_no: str = Field(..., min_length=1, max_length=80)
+
+class ProjectCheckResponse(BaseModel):
+    available: bool
+    message: str
 
 class ProjectCreate(ProjectBase):
     pass
