@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1.router import router as api_router
+from app.api.routers.projects import router as api_router
 
 def create_app():
     app = FastAPI()
@@ -15,7 +15,7 @@ def create_app():
     )
     
     # Include routers
-    app.include_router(api_router, prefix="/api/v1")
+    app.include_router(api_router, prefix="/api/projects")
     
     return app
 

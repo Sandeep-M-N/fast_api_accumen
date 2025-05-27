@@ -8,7 +8,7 @@ from datetime import date
 from typing import Optional
 
 router = APIRouter()
-@router.post("/projects/check", response_model=ProjectCheckResponse)
+@router.post("/check-project-number", response_model=ProjectCheckResponse)
 def check_project_no(
     request: ProjectCheckRequest,
     db: Session = Depends(get_db)
@@ -20,7 +20,7 @@ def check_project_no(
                   else "Project number already exists"
     }
 
-@router.post("/projects", response_model=ProjectResponse)
+@router.post("/create", response_model=ProjectResponse)
 def create_project_with_upload(
     customer_name: str = Form(...),
     project_no: str = Form(...),
@@ -31,14 +31,6 @@ def create_project_with_upload(
     db: Session = Depends(get_db)
 ):
     try:
-        # Check for existing project
-        if get_project(db, project_no=project_no):
-            raise HTTPException(status_code=400, detail="Project number already exists")
-        # Handle empty string case
-        # if uploaded_file == "":
-        #     uploaded_file = None
-        
-        
         # Process file upload and Azure Blob Storage upload
         # Rest of your implementation
         if uploaded_file:
