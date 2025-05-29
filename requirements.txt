@@ -31,7 +31,10 @@ httpx[http2]         # For async test client
 pydantic-settings
 psycopg2-binary
 coverage
-
+pandas
+pyodbc
+pyreadstat
+numpy
 azure-storage-blob
 
 
