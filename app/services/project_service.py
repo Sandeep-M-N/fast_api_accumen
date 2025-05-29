@@ -80,6 +80,7 @@ def process_uploaded_file(project_no: str, uploaded_file: UploadFile) -> int:
                 zip_upload_end = time.time()
                 zip_duration = zip_upload_end - zip_upload_start
                 logger.debug(f"[DEBUG] ZIP upload completed in {zip_duration:.2f} seconds")
+                is_uploaded=1
             else:
                 logger.error(f"[ERROR] Failed to upload ZIP file: {file_path}")
                 raise Exception("Failed to upload ZIP file")
@@ -118,6 +119,7 @@ def process_uploaded_file(project_no: str, uploaded_file: UploadFile) -> int:
                 sas_upload_end = time.time()
                 sas_duration = sas_upload_end - sas_upload_start
                 logger.debug(f"[DEBUG] SAS file upload completed in {sas_duration:.2f} seconds")
+                is_uploaded=1
 
                 for i, (blob_path, local_path) in enumerate(files_to_upload):
                     if i < success_count:
