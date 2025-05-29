@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, field_validator
 from datetime import date, datetime
 from typing import Optional
+from typing import List, Tuple
 import re
 class ProjectBase(BaseModel):
     customer_name: str = Field(..., min_length=1, max_length=80, pattern=r'^[a-zA-Z0-9& -]+$')
@@ -37,3 +38,6 @@ class ProjectResponse(ProjectBase):
         json_encoders = {
             date: lambda v: v.isoformat() if v else None  # Output as ISO format
         }
+
+class ProjectRequest(BaseModel):
+    project_name: str
