@@ -1,11 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from app.schemas.project import ProjectCreate, ProjectResponse,ProjectCheckRequest,ProjectCheckResponse
+from app.schemas.project import ProjectCreate, ProjectResponse,ProjectCheckRequest,ProjectCheckResponse, ProjectRequest
 from app.services.project_service import get_project, create_project, process_uploaded_file
 from app.db.session import get_db
 from typing import Union
 from datetime import date
 from typing import Optional
+from fastapi import FastAPI, Depends, HTTPException
+from pydantic import BaseModel
+from typing import List, Tuple
+from app.services.converter import upload_sas_files
 
 router = APIRouter()
 @router.post("/check-project-number", response_model=ProjectCheckResponse)
@@ -56,3 +60,7 @@ def create_project_with_upload(
         return db_project
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
+    
+@router.post("/upload-sas/")
+def upload_sas(req: ProjectRequest):
+    return upload_sas_files(req)
