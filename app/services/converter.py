@@ -24,7 +24,33 @@ from app.core.config import settings
 # Import database utilities
 from app.db.session import ConnectionPool
 
+#logger = logging.getLogger("sas_importer")
+# Ensure the logs directory exists
+os.makedirs("logs", exist_ok=True)
+
+# Create logger
 logger = logging.getLogger("sas_importer")
+logger.setLevel(logging.INFO)
+
+# File handler with UTF-8 encoding
+file_handler = logging.FileHandler("logs/sas_importer.log", encoding="utf-8")
+file_handler.setLevel(logging.INFO)
+
+# Console handler (optional, safer without emojis)
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+
+# Formatter
+formatter = logging.Formatter(
+    "%(asctime)s — %(name)s — %(levelname)s — %(message)s"
+)
+file_handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)
+
+# Avoid adding handlers multiple times
+if not logger.handlers:
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
 
 class ProjectRequest(BaseModel):
     project_name: str
