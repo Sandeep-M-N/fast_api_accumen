@@ -14,3 +14,5 @@ app/utils/__pycache__/*
 app/services/__pycache__/*
 app/schemas/__pycache__/*
 logs/*
+__pycache__/
+*.py[cod]
