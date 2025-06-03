@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form,status
 from sqlalchemy.orm import Session
 from app.schemas.project import ProjectCreate, ProjectResponse,ProjectCheckRequest,ProjectCheckResponse, ProjectRequest
 from app.services.project_service import get_project, create_project, process_uploaded_file,get_all_projects
@@ -6,7 +6,6 @@ from app.db.session import get_db
 from typing import Union
 from datetime import date,datetime
 from typing import Optional
-from fastapi import FastAPI, Depends, HTTPException
 from pydantic import BaseModel
 from typing import List, Tuple
 import os
@@ -26,17 +25,33 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-@router.post("/check-project-number", response_model=ProjectCheckResponse)
+@router.post(
+    "/check-project-number",
+    response_model=ProjectCheckResponse,
+    responses={
+        200: {"description": "Project number is available"},
+        400: {"description": "Project number already exists"}
+    }
+)
 def check_project_no(
     request: ProjectCheckRequest,
     db: Session = Depends(get_db)
 ):
     existing = get_project(db, ProjectNumber=request.ProjectNumber)
-    return {
-        "available": not existing,
-        "message": "Project number available" if not existing 
-                  else "Project number already exists"
-    }
+
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "available": False,
+                "message": "Project number already exists"
+            }
+        )
+    else:
+        return {
+            "available": True,
+            "message": "Project number is available"
+        }
 @router.get("/list-projects", response_model=List[ProjectResponse])
 def list_projects(db: Session = Depends(get_db)):
     """
@@ -87,7 +102,7 @@ def create_project_with_upload(
     IsDeleted: bool = Form(False),
     DeletedAt: Optional[str] = Form(None),
     DeletedBy: Optional[str] = Form(None),
-    uploaded_file: Union[UploadFile, None] = File(None),
+    uploaded_files: List[UploadFile] = File(default=None),
     db: Session = Depends(get_db)
 ):
     try:
@@ -113,10 +128,10 @@ def create_project_with_upload(
             deleted_at = datetime.fromisoformat(DeletedAt)
         # Process file upload and Azure Blob Storage upload
         # Rest of your implementation
-        if uploaded_file:
-            is_uploaded = process_uploaded_file(ProjectNumber, uploaded_file)
+        if uploaded_files:
+            IsDatasetUploaded = process_uploaded_file(ProjectNumber, uploaded_files)
         else:
-            is_uploaded = 0
+            IsDatasetUploaded = False
         
         
         # Create project in database
@@ -140,11 +155,82 @@ def create_project_with_upload(
         )
         
         db_project = create_project(db, project=project_data)
-        db_project.is_uploaded = is_uploaded
+        db_project.IsDatasetUploaded = IsDatasetUploaded
         db.commit()
         db.refresh(db_project)
         
         return db_project
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    
+@router.put("/edit/{ProjectNumber}", response_model=ProjectResponse)
+def edit_project_by_number(
+    ProjectNumber: str,
+    ProjectName: str = Form(None),
+    CustName: str = Form(None),
+    ProjectStatus: str = Form(None),
+    DateCutDate: Optional[str] = Form(None),
+    DateExtractionDate: Optional[str] = Form(None),
+    IsDatasetUploaded: bool = Form(None),
+    CreatedByEmail: Optional[str] = Form(None),
+    DateCreated: Optional[str] = Form(None),
+    DateModified: Optional[str] = Form(None),
+    isActive: bool = Form(None),
+    UploadedBy: Optional[str] = Form(None),
+    ModifiedBy: Optional[str] = Form(None),
+    IsDeleted: bool = Form(None),
+    DeletedAt: Optional[str] = Form(None),
+    DeletedBy: Optional[str] = Form(None),
+    uploaded_files: List[UploadFile] = File(default=None),
+    db: Session = Depends(get_db)
+):
+    try:
+        # Find the project by ProjectNumber
+        project = get_project(db, ProjectNumber)
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project with number {ProjectNumber} not found.")
+
+        # Update only the fields that are provided
+        if ProjectName is not None:
+            project.ProjectName = ProjectName
+        if CustName is not None:
+            project.CustName = CustName
+        if ProjectStatus is not None:
+            project.ProjectStatus = ProjectStatus
+        if DateCutDate is not None:
+            project.DateCutDate = datetime.fromisoformat(DateCutDate)
+        if DateExtractionDate is not None:
+            project.DateExtractionDate = datetime.fromisoformat(DateExtractionDate)
+        if IsDatasetUploaded is not None:
+            project.IsDatasetUploaded = IsDatasetUploaded
+        if CreatedByEmail is not None:
+            project.CreatedByEmail = CreatedByEmail
+        if DateCreated is not None:
+            project.DateCreated = datetime.fromisoformat(DateCreated)
+        if DateModified is not None:
+            project.DateModified = datetime.fromisoformat(DateModified)
+        if isActive is not None:
+            project.isActive = isActive
+        if UploadedBy is not None:
+            project.UploadedBy = UploadedBy
+        if ModifiedBy is not None:
+            project.ModifiedBy = ModifiedBy
+        if IsDeleted is not None:
+            project.IsDeleted = IsDeleted
+        if DeletedAt is not None:
+            project.DeletedAt = datetime.fromisoformat(DeletedAt)
+        if DeletedBy is not None:
+            project.DeletedBy = DeletedBy
+
+        # Handle file upload and update IsDatasetUploaded
+        if uploaded_files:
+            project.IsDatasetUploaded = process_uploaded_file(ProjectNumber, uploaded_files)
+
+        db.commit()
+        db.refresh(project)
+
+        return ProjectResponse.from_orm(project)
+
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     

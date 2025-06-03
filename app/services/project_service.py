@@ -55,40 +55,51 @@ def classify_sas_file(filename: str) -> str:
         return "SDTM"
     return None
 
-def process_uploaded_file(ProjectNo: str, uploaded_file: UploadFile) -> int:
+def process_uploaded_file(ProjectNumber: str, uploaded_files: List[UploadFile]) -> int:
     """
-    Process an uploaded file (ZIP or single SAS file) and upload to Azure Blob Storage.
+    Process multiple uploaded files (ZIP, SAS, or Excel) and upload them to Azure Blob Storage.
     Returns 1 if at least one file was processed and uploaded, else 0.
     """
-    is_uploaded = 0
-    processed_files = []
+    IsDatasetUploaded = False
+    # processed_files = []
 
     try:
         # Start time for full process
         start_time_total = time.time()
         logger.debug(f"[DEBUG] Start time for full process: {start_time_total}")
 
-        if uploaded_file:
-            # Create a fixed temp directory (not deleted automatically)
-            tmpdirname = tempfile.mkdtemp()
-            file_path = os.path.join(tmpdirname, uploaded_file.filename)
+        if not uploaded_files:
+            logger.warning("No files were uploaded.")
+            return 0
 
-            # Save the uploaded file to the temp directory
-            with open(file_path, "wb") as f:
-                shutil.copyfileobj(uploaded_file.file, f)
-            logger.debug(f"[DEBUG] File saved to: {file_path}")
+        # Create a temporary directory to store all files
+        tmpdirname = tempfile.mkdtemp()
+        logger.debug(f"[DEBUG] Created temporary directory: {tmpdirname}")
 
-            # Track time for uploading ZIP to Azure
-        #     if uploaded_file.filename.lower().endswith('.zip'):
-        #         zip_upload_start = time.time()
-        #         sanitized_name = sanitize_filename(uploaded_file.filename)
-        #         blob_raw_path = f"raw/{project_no}/{sanitized_name}"
+        for uploaded_file in uploaded_files:
+            if uploaded_file.filename:
+                file_path = os.path.join(tmpdirname, uploaded_file.filename)
+                logger.debug(f"[DEBUG] Saving file: {file_path}")
 
-        #         if upload_to_azure_blob(blob_raw_path, file_path):
-        #             zip_upload_end = time.time()
-        #             zip_duration = zip_upload_end - zip_upload_start
-        #             logger.debug(f"[DEBUG] ZIP uploaded to Azure in {zip_duration:.2f} seconds")
-        #             is_uploaded = 1
+                # Save the file locally
+                with open(file_path, "wb") as f:
+                    shutil.copyfileobj(uploaded_file.file, f)
+
+                # Check file type
+                if uploaded_file.filename.lower().endswith(('.zip', '.sas7bdat', '.xlsx')):
+                    start_duration=time.time()
+                    sanitized_name = sanitize_filename(uploaded_file.filename)
+                    blob_raw_path = f"raw/{ProjectNumber}/{sanitized_name}"
+
+                    if upload_to_azure_blob(blob_raw_path, file_path):
+                        end_duration=time.time()
+                        total=end_duration - start_duration
+                        logger.debug(f"[DEBUG] File '{uploaded_file.filename}' uploaded successfully in {total:.2f} seconds.")
+                        IsDatasetUploaded = True
+                    else:
+                        logger.warning(f"[WARNING] Failed to upload file: {uploaded_file.filename}")
+                else:
+                    logger.warning(f"[WARNING] Unsupported file type: {uploaded_file.filename}")
         # else:
         #     logger.error(f"[ERROR] Failed to upload ZIP file: {file_path}")
         #     raise Exception("Failed to upload ZIP file")
@@ -169,15 +180,15 @@ def process_uploaded_file(ProjectNo: str, uploaded_file: UploadFile) -> int:
         #                 os.remove(local_path)
         #                 logger.debug(f"[DEBUG] Deleted local file: {local_path}")
 
-        # # Total time taken
-        # total_end = time.time()
-        # total_duration = total_end - start_time_total
-        # logger.debug(f"[DEBUG] Total upload duration: {total_duration:.2f} seconds")
+        # Total time taken
+        total_end = time.time()
+        total_duration = total_end - start_time_total
+        logger.debug(f"[DEBUG] Total upload duration: {total_duration:.2f} seconds")
 
         # Clean up temp directory
         shutil.rmtree(tmpdirname)
 
-        return is_uploaded
+        return IsDatasetUploaded
 
     except Exception as e:
         logger.error(f"Error processing file: {str(e)}", exc_info=True)

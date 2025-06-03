@@ -3,7 +3,7 @@ from app.db.base import Base
 from datetime import datetime,timezone
 
 class Project(Base):
-    __tablename__ = "Accumen project"
+    __tablename__ = "project"
     ProjectId = Column(Integer, primary_key=True, index=True)
     ProjectNumber = Column(String(80), unique=True, nullable=False)
     ProjectName = Column(String(80), nullable=False)
